@@ -23,6 +23,8 @@ class Colony_Wrapper:
         self.actions_taken: int = 0
     def get_actions(self, colony_state: Colony) -> list[tuple[str, Callable, int]] | None:
         if self.actions_taken >= self.actions_per_day:
+            self.actions_taken = 0
+            # colony_state.tick_step() remember to call the tick step sometime
             return None
         colony_actions = [
             action for action in get_colony_actions() 
@@ -40,6 +42,7 @@ class Colony_Wrapper:
             action: tuple[str, Callable, int] | None
         ) -> Colony:
         new_state: Colony = Colony(colony_state.buildings[:], colony_state.events[:])
+        #I may want to just quietly advance the day and not generate a whole new state for the new day
         if action is None:
             new_state.current_day += 1
             return new_state
