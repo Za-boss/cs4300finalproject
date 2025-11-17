@@ -29,11 +29,9 @@ class Colony:
         self.base_energy_production: int = 10
         self.events: list["Event"] = events
         self.current_effects: list[tuple[Callable, int]] = []
-        self.base_population_decrease_factor: float = 0.02
-        self.temp_population_decrease_factor: float = 0.0
-        self.base_population_increase_factor: float = 0.04
-        self.temp_population_increase_factor: float = 0.0
-        self.food_consumption_factor: float = 2.0 
+        self.population_growth_factor: float = 0.02
+        self.temp_population_growth_factor: float = 0.0
+        self.food_consumption_factor: float = 2.0
         self.has_lost = False
         self.defense_capacity: float = self.calc_defense_capacity()
         #consider adding a population capacity somewhere
@@ -86,13 +84,13 @@ class Colony:
         self.current_effects = continued_effects
 
     def calc_population_change(self) -> None:
-        pre_calc_population = self.population
         
-        population_added = max(2, math.ceil(self.population * (self.base_population_increase_factor + self.temp_population_increase_factor)))
-        self.population += population_added
-        
-        population_decrease = math.ceil(pre_calc_population * (self.base_population_decrease_factor + self.temp_population_decrease_factor))
-        self.population -=  population_decrease
+        population_change = self.population * (self.population_growth_factor + self.temp_population_growth_factor)
+        if population_change >= 0:
+            population_change = max(2, math.ceil(population_change))
+        else:
+            population_change = min(-2, math.floor(population_change))
+        self.population += population_change
         
         if self.food <= 0:
             self.population -= max(10, math.ceil(self.population // 10)) # 10 people or 10% of the population, whichever is greater
@@ -116,10 +114,7 @@ class Colony:
         self.defense_capacity = self.calc_defense_capacity()
         self.calc_food_consumption()
         self.calc_population_change()
-        self.temp_population_decrease_factor = 0
-        self.temp_population_increase_factor = 0 # setting these to 0 so they can be modified by temporary effects
-        # if self.energy <= 0:
-        #     self.has_lost = True
+        self.temp_population_growth_factor = 0# setting these to 0 so they can be modified by temporary effects
 
 def get_colony_actions() -> list[tuple[str, Callable, int]]:
     #These invest actions should have some sort of cost but I'm not sure what it should be
@@ -144,7 +139,7 @@ def get_colony_actions() -> list[tuple[str, Callable, int]]:
     population_investment_cost = 10
     def invest_in_population_increase(colony: "Colony") -> tuple[bool, str]:
         colony.energy -= population_investment_cost
-        colony.base_population_increase_factor += 0.005
+        colony.population_growth_factor += 0.005
         return (True, "Population increase successfully invested in")
     
     do_nothing_cost = 0 # lol

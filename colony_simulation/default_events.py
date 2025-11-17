@@ -20,7 +20,7 @@ def alien_invasion_event_fire(colony: "Colony") -> None:
 
 def alien_infection_event_fire(colony: "Colony") -> None:
     def infection_effect(colony: "Colony"):
-        colony.temp_population_decrease_factor += 0.1 #This can be used as a template for effect functions that apply continuous effects, this inner function will fire on every tick until its duration is up
+        colony.temp_population_growth_factor -= 0.1 #This can be used as a template for effect functions that apply continuous effects, this inner function will fire on every tick until its duration is up
     
     colony.current_effects.append((infection_effect, 3))
     print ("alien infection has occurred")
