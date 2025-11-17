@@ -10,13 +10,15 @@ class Event:
             self, 
             event_name: str,
             fire_event: Callable,
-            fire_date: int | None = None,
+            fire_dates: tuple[int, ...] | None = (),
             firing_likelihood: float | None = None,
-            tick_effect: Callable | None = None
+            tick_effect: Callable | None = None,
+            fire_count: int = 1
         ):
         self.event_name: str = event_name
         self.fire_event: Callable = fire_event
-        self.fire_date: int | None = fire_date
+        self.fire_dates: tuple[int, ...] | None = fire_dates
         self.firing_likelihood: float | None = firing_likelihood
         self.tick_effect: Callable | None = tick_effect
+        self.fire_count = fire_count
         

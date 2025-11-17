@@ -5,8 +5,11 @@ if TYPE_CHECKING:
     from colony import Colony
 def building_destroy_event_fire(colony: "Colony") -> None:
     print("Meteor strike has occurred")
-    building = random.choice(colony.buildings)
-    colony.buildings.remove(building)
+    if colony.buildings:
+        building = random.choice(colony.buildings)
+        colony.buildings.remove(building)
+    else:
+        colony.population -= 10
 
 def alien_invasion_event_fire(colony: "Colony") -> None:
     print("alien invasion has occurred")
@@ -24,11 +27,27 @@ def alien_infection_event_fire(colony: "Colony") -> None:
     colony.population -= 10
 
 
+meteor_strike_test = {
+    "event_name": "meteor_strike",
+    "fire_event": building_destroy_event_fire,
+    "fire_dates": (3, 7, 19),
+}
+alien_invasion_test = {
+    "event_name": "alien_invasion",
+    "fire_event": building_destroy_event_fire,
+    "firing_likelihood": 0.2,
+    "fire_count": 3
+}
+alien_infection_test = {
+    "event_name": "meteor_strike",
+    "fire_event": building_destroy_event_fire,
+    "fire_dates": (5, 20),
+}
 
-meteor_strike = Event(event_name="meteor_strike", fire_event=building_destroy_event_fire, fire_date=3)
+meteor_strike = Event(event_name="meteor_strike", fire_event=building_destroy_event_fire, fire_dates=(3, 7, 19))
 
-alien_invasion = Event(event_name="alien_invasion", fire_event=alien_invasion_event_fire, firing_likelihood=.2)
+alien_invasion = Event(event_name="alien_invasion", fire_event=alien_invasion_event_fire, firing_likelihood=.2, fire_count=3)
 
-alien_infection = Event(event_name="alien infection", fire_event=alien_infection_event_fire, fire_date=5)
+alien_infection = Event(event_name="alien infection", fire_event=alien_infection_event_fire, fire_dates=(5, 20, 31))
 
 #An interesting idea might be having events that only fire when certain thresholds have been met, ie some buildings existing or not or some values being met

@@ -7,13 +7,45 @@ from colony_simulation.building import *
 from colony_simulation.wrapper import Colony_Wrapper
 from colony_simulation.default_buildings import *
 from colony_simulation.default_events import *
+import random
+#Events should be encoded as: Event, Fire_date, Firing likelihood
 
-def setup_simulation() -> tuple[Colony, list[Building]]:
+
+# goes through a list of events, if the event has firing date(s), 
+# if the event has a firing likelihood, generate a random number and add the event at the current day if the random number deems it so
+def setup_events(events : list[Event], days : int):
+    event_list = []
+    event_removal_list = []
+    for event in events:
+        if event.fire_dates:
+            event_list.append(event)
+            event_removal_list.append(event)
+        if event.firing_likelihood:
+            fire_dates = []
+            for i in range(1, days + 1):
+                if random.random() <= event.firing_likelihood:
+                    fire_dates.append(i)
+                    event.fire_count -= 1
+                    if event.fire_count <= 0:
+                        event_removal_list.append(event)
+                        break
+            event.firing_likelihood = None
+            event.fire_dates = tuple(fire_dates)
+            event_list.append(event)
+    for event in event_removal_list:
+        events.remove(event)
+    return event_list
+
+
+
+def setup_simulation(expected_days : int) -> tuple[Colony, list[Building]]:
     buildings = [nuclear_reactor.clone(), nuclear_reactor.clone()]
     available_buildings = [nuclear_reactor, farm, barracks]
     events = [meteor_strike, alien_invasion, alien_infection]
-    colony_state = Colony(starting_buildings=buildings, events=events)
-    colony_state.food_consumption_factor = 3
+    event_list = setup_events(events, expected_days)
+    colony_state = Colony(starting_buildings=buildings, events=event_list)
+
+    colony_state.food_consumption_factor = 2
     colony_state.population = 100
 
     return (colony_state, available_buildings)
@@ -32,10 +64,10 @@ def main() -> None:
     args = parser.parse_args()
     algorithm = algorithms[args.algorithm]
     run_count = args.run_count
-
-    colony, buildings = setup_simulation()
+    GOAL_DAYS = 31
+    colony, buildings = setup_simulation(GOAL_DAYS)
     colony_wrapper = Colony_Wrapper(colony, buildings)
-    colony_wrapper.goal_day = 31
+    colony_wrapper.goal_day = GOAL_DAYS
 
     success, state = algorithm(colony_wrapper, run_count)
     if success and state:
@@ -49,12 +81,13 @@ def main() -> None:
                 buildings: {state.buildings}""")
     else:
         print("whoops, you lost")
-        print(f"""Colony stats:
+        print(f"""Colony stats at last day:
                 Food: {state.food}
                 Population: {state.population}
                 defense readiness: {state.defense_capacity}
                 Energy stockpiles: {state.energy}
                 buildings: {state.buildings}""")
+    success, state = algorithm(colony_wrapper, run_count)
 
 
 

@@ -53,7 +53,7 @@ class Colony_Wrapper:
         return new_state
     def goal_test(self, colony_state: Colony) -> bool:
         print(colony_state.current_day, self.goal_day)
-        return (colony_state.current_day >= self.goal_day)
+        return (colony_state.current_day > self.goal_day)
     def fail_test(self, colony_state: Colony) -> bool:
         return colony_state.check_loss()
     def step_cost(self) -> float:

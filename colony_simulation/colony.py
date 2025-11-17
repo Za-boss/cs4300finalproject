@@ -39,6 +39,8 @@ class Colony:
         #consider adding a population capacity somewhere
 
     def calc_defense_capacity(self) -> float:
+        if not self.buildings:
+            return self.base_defense_capacity
         extra_defense = 0
         staff_per_building = self.population / len(self.buildings)
 
@@ -51,6 +53,8 @@ class Colony:
         return self.base_defense_capacity + extra_defense
     
     def run_building_effects(self) -> None:
+        if not self.buildings:
+            return
         staff_per_building = self.population / len(self.buildings)
         
         for building in self.buildings:
@@ -60,18 +64,12 @@ class Colony:
             building.tick_effect(self, building.power_modifier)
 
     def run_events(self) -> None:
-        event_removal_list: list["Event"] = []
-
         for event in self.events:
-            if event.fire_date is not None and event.fire_date == self.current_day:
+            if not event.fire_dates:
+                continue
+            if self.current_day in event.fire_dates:
+                print("event should fire")
                 event.fire_event(self)
-                event_removal_list.append(event)
-            elif event.firing_likelihood is not None and random.random() <= event.firing_likelihood:
-                event.fire_event(self)
-                event_removal_list.append(event)
-
-        for event in event_removal_list:
-            self.events.remove(event)
     
     def apply_effects(self) -> None:
         continued_effects = []
