@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 import random
-from events import *
+from colony_simulation.events import *
 if TYPE_CHECKING:
     from colony import Colony
 def building_destroy_event_fire(colony: "Colony") -> None:

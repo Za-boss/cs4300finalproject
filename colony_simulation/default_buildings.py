@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING
-from building import Building
+from colony_simulation.building import Building
 if TYPE_CHECKING:
     from colony import Colony
 def farm_tick_effect(colony : "Colony", efficiency: float):

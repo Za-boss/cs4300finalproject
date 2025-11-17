@@ -13,6 +13,8 @@ def setup_simulation() -> tuple[Colony, list[Building]]:
     available_buildings = [nuclear_reactor, farm, barracks]
     events = [meteor_strike, alien_invasion, alien_infection]
     colony_state = Colony(starting_buildings=buildings, events=events)
+    colony_state.food_consumption_factor = 3
+    colony_state.population = 100
 
     return (colony_state, available_buildings)
 
@@ -24,19 +26,35 @@ algorithms = {
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Agent runner for running the colony management agent")
-    parser.add_argument('--algorithm', '--algo', type=str, choices=algorithms.keys(), required=True, help="What algorithm to use for this run of the colony management agents")
+    parser.add_argument('--algorithm', '--algo', type=str, choices=algorithms.keys(), required=False, default="default_dfs", help="What algorithm to use for this run of the colony management agents")
     parser.add_argument('--run_count', "--rc", type=int, default=10, required=False)
 
     args = parser.parse_args()
-    algorithm = algorithms[args.algo]
-    run_count = args.rc
+    algorithm = algorithms[args.algorithm]
+    run_count = args.run_count
 
     colony, buildings = setup_simulation()
     colony_wrapper = Colony_Wrapper(colony, buildings)
+    colony_wrapper.goal_day = 31
 
-    success = algorithm(colony_wrapper, run_count)
+    success, state = algorithm(colony_wrapper, run_count)
+    if success and state:
+        print(success)
 
-    print(success)
+        print(f"""Colony stats:
+                Food: {state.food}
+                Population: {state.population}
+                defense readiness: {state.defense_capacity}
+                Energy stockpiles: {state.energy}
+                buildings: {state.buildings}""")
+    else:
+        print("whoops, you lost")
+        print(f"""Colony stats:
+                Food: {state.food}
+                Population: {state.population}
+                defense readiness: {state.defense_capacity}
+                Energy stockpiles: {state.energy}
+                buildings: {state.buildings}""")
 
 
 

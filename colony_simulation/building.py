@@ -17,6 +17,7 @@ class Building:
         self.defense_strength: int = defense_strength
         self.staff_needed = staff_needed
         self.building_cost: int = building_cost
+        self.power_modifier: float = 1.0
         self.tick_effect: Callable | None = tick_effect
 
         #I might want to consider having the effects be tied to the building itself rather than a tick effect so that upgrades and stuff are easier to make
@@ -29,7 +30,8 @@ class Building:
             return (False, f"Failed to build: {self.building_name}: lack of energy")
     def clone(self) -> "Building":
         return Building(self.building_name, self.tick_effect, self.defense_strength, self.staff_needed, self.building_cost)
-
+    def __repr__(self) -> str:
+        return f"{self.building_name} efficiency: {self.power_modifier}"
 
 def get_building_actions(buildings: list[Building]) -> list[tuple[str, Callable, int]]:
     building_actions = []
@@ -41,3 +43,4 @@ def get_building_actions(buildings: list[Building]) -> list[tuple[str, Callable,
             )
         )
     return building_actions
+

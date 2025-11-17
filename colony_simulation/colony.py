@@ -14,14 +14,14 @@ class Colony:
             self, 
             starting_buildings : list["Building"],
             events: list["Event"],
-            starting_food: int = 500, 
+            food: int = 500, 
             base_defense_capacity: float = 50.0,
             population: int = 50,
             energy: int = 50
         ):
         self.current_day: int = 1
         self.base_defense_capacity: float = base_defense_capacity
-        self.food : int = starting_food
+        self.food : int = food
         self.base_food_production: int = 10
         self.population: int = population
         self.buildings: list["Building"] = starting_buildings
@@ -45,8 +45,8 @@ class Colony:
         for building in self.buildings:
             if building.defense_strength == 0:
                 continue
-            power_modifier = min(1, staff_per_building/building.staff_needed)
-            extra_defense += building.defense_strength * power_modifier
+            building.power_modifier = min(1, staff_per_building/building.staff_needed)
+            extra_defense += building.defense_strength * building.power_modifier
 
         return self.base_defense_capacity + extra_defense
     
@@ -56,8 +56,8 @@ class Colony:
         for building in self.buildings:
             if building.tick_effect == None:
                 continue
-            power_modifier = min(1, staff_per_building / building.staff_needed)
-            building.tick_effect(self, power_modifier)
+            building.power_modifier = min(1, staff_per_building / building.staff_needed)
+            building.tick_effect(self, building.power_modifier)
 
     def run_events(self) -> None:
         event_removal_list: list["Event"] = []
@@ -104,7 +104,10 @@ class Colony:
 
     def calc_food_consumption(self) -> None:
         self.food -= round(self.population / self.food_consumption_factor)
-    
+    def check_loss(self):
+        if self.population <= 0:
+            return True
+        return False
     def tick_step(self) -> None:
         self.current_day += 1
         self.food += self.base_food_production
@@ -117,8 +120,6 @@ class Colony:
         self.calc_population_change()
         self.temp_population_decrease_factor = 0
         self.temp_population_increase_factor = 0 # setting these to 0 so they can be modified by temporary effects
-        if self.population <= 0:
-            self.has_lost = True
         # if self.energy <= 0:
         #     self.has_lost = True
 
