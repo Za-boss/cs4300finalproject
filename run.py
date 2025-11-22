@@ -68,11 +68,19 @@ def main() -> None:
     colony, buildings = setup_simulation(GOAL_DAYS)
     colony_wrapper = Colony_Wrapper(colony, buildings)
     colony_wrapper.goal_day = GOAL_DAYS
-
+    if args.algorithm == "percentage_fuzzing":
+        stats = algorithm(colony_wrapper, run_count)
+        print(f"""Percentage fuzzing stats:
+                Win rate: {stats.win_rate}
+                Total wins: {stats.total_wins}
+                Total runs: {stats.total_runs}
+                Total depth: {stats.total_depth}
+                Average depth: {stats.average_depth}
+                Nodes generated: {stats.nodes_generated}""")
+        return
     success, state = algorithm(colony_wrapper, run_count)
     if success and state:
         print(success)
-
         print(f"""Colony stats:
                 Food: {state.food}
                 Population: {state.population}

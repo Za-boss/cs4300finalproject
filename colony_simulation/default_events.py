@@ -4,7 +4,6 @@ from colony_simulation.events import *
 if TYPE_CHECKING:
     from colony import Colony
 def building_destroy_event_fire(colony: "Colony") -> None:
-    print("Meteor strike has occurred")
     if colony.buildings:
         building = random.choice(colony.buildings)
         colony.buildings.remove(building)
@@ -12,7 +11,6 @@ def building_destroy_event_fire(colony: "Colony") -> None:
         colony.population -= 10
 
 def alien_invasion_event_fire(colony: "Colony") -> None:
-    print("alien invasion has occurred")
     if colony.defense_capacity >= 75:
         colony.population -= 15
     else:
@@ -23,7 +21,6 @@ def alien_infection_event_fire(colony: "Colony") -> None:
         colony.temp_population_growth_factor -= 0.1 #This can be used as a template for effect functions that apply continuous effects, this inner function will fire on every tick until its duration is up
     
     colony.current_effects.append((infection_effect, 3))
-    print ("alien infection has occurred")
     colony.population -= 10
 
 

@@ -9,6 +9,13 @@ if TYPE_CHECKING:
 # lingering event effects, statuses that are applied when an event fires
 # building upgrades - this one is probably going to be a very big optional one, may be implemented as an upgrade that just happens after a certain amount of days of existing
 # buildings that only provide upgrades when they're
+
+#mechanic addition ideas:
+# -colony modifiers (chosen at start)
+# -morale (a morale value that effects multiple aspects of the colony)
+# -more effects from events and the like
+# -flavor to buildings
+
 class Colony:
     def __init__(
             self, 
@@ -17,7 +24,7 @@ class Colony:
             food: int = 500, 
             base_defense_capacity: float = 50.0,
             population: int = 50,
-            energy: int = 50
+            energy: float = 50.0
         ):
         self.current_day: int = 1
         self.base_defense_capacity: float = base_defense_capacity
@@ -25,7 +32,7 @@ class Colony:
         self.base_food_production: int = 10
         self.population: int = population
         self.buildings: list["Building"] = starting_buildings
-        self.energy: int = energy
+        self.energy: float = energy
         self.base_energy_production: int = 10
         self.events: list["Event"] = events
         self.current_effects: list[tuple[Callable, int]] = []
@@ -66,7 +73,6 @@ class Colony:
             if not event.fire_dates:
                 continue
             if self.current_day in event.fire_dates:
-                print("event should fire")
                 event.fire_event(self)
     
     def apply_effects(self) -> None:

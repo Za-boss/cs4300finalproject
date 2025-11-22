@@ -14,26 +14,25 @@ class Colony_Wrapper:
         self.available_buildings: list["Building"] = available_buildings
         self.actions_per_day: int = 3
         self.actions_taken: int = 0
-    def get_actions(self, colony_state: Colony) -> list[tuple[str, Callable, int]] | None:
+    def get_actions(self, colony_state: Colony, available_energy: float) -> list[tuple[str, Callable, int]] | None:
         if self.actions_taken >= self.actions_per_day:
             self.actions_taken = 0
             # colony_state.tick_step() remember to call the tick step sometime
             return None
         colony_actions = [
             action for action in get_colony_actions() 
-            if colony_state.energy >= action[2] or action[2] == 0 and not action[2] < 0
+            if available_energy >= action[2] or action[2] == 0 and not action[2] < 0
         ]
         building_actions = [
             action for action in get_building_actions(self.available_buildings) 
-            if colony_state.energy >= action[2] or action[2] == 0 and not action[2] < 0
+            if available_energy >= action[2] or action[2] == 0 and not action[2] < 0
         ]
         actions = colony_actions + building_actions
-        self.actions_taken += 1
         return actions
     def transition(
             self, 
             colony_state: Colony, 
-            action: Callable | None
+            action_list: list[Callable]
         ) -> Colony:
         new_state: Colony = Colony(
             colony_state.buildings[:], 
@@ -45,14 +44,11 @@ class Colony_Wrapper:
         )
         new_state.current_day = colony_state.current_day
         #I may want to just quietly advance the day and not generate a whole new state for the new day
-        if action is None:
-            print("hello")
-            new_state.tick_step()
-            return new_state
-        action(new_state)
+        for action in action_list:
+            action(new_state)
+        new_state.tick_step()
         return new_state
     def goal_test(self, colony_state: Colony) -> bool:
-        print(colony_state.current_day, self.goal_day)
         return (colony_state.current_day > self.goal_day)
     def fail_test(self, colony_state: Colony) -> bool:
         return colony_state.check_loss()
