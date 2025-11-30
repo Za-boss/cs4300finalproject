@@ -40,8 +40,8 @@ def setup_events(events : list[Event], days : int):
 
 def setup_simulation(expected_days : int) -> tuple[Colony, list[Building]]:
     buildings = [nuclear_reactor.clone(), nuclear_reactor.clone()]
-    available_buildings = [nuclear_reactor, farm, barracks]
-    events = [meteor_strike, alien_invasion, alien_infection]
+    available_buildings = [nuclear_reactor, farm, barracks, space_port, military_academy]
+    events = [event for event in ALL_EVENTS]
     event_list = setup_events(events, expected_days)
     colony_state = Colony(starting_buildings=buildings, events=event_list)
 
@@ -95,9 +95,6 @@ def main() -> None:
                 defense readiness: {state.defense_capacity}
                 Energy stockpiles: {state.energy}
                 buildings: {state.buildings}""")
-    success, state = algorithm(colony_wrapper, run_count)
-
-
 
 
     #Start by implementing a basic version of the "fuzzer" which is basic DFS first

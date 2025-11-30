@@ -1,13 +1,7 @@
-from typing import TYPE_CHECKING
 from colony_simulation.building import Building
-if TYPE_CHECKING:
-    from colony import Colony
-def farm_tick_effect(colony : "Colony", efficiency: float):
-    colony.food += round(15 * efficiency)
 
-def nuclear_reactor_tick_effect(colony: "Colony", efficiency: float):
-    colony.energy += round(20 * efficiency)
-
-farm = Building("Farm", farm_tick_effect) 
-nuclear_reactor = Building("Nuclear reactor", nuclear_reactor_tick_effect)
+farm = Building("Farm", production={"food": 15})
+nuclear_reactor = Building("Nuclear reactor", production={"energy": 100})
+space_port = Building("Space Port", production={"population": 5, "food": 3})
+military_academy = Building("Military Academy", production={"defense": 5}, building_cost=100, staff_needed=20)
 barracks = Building("Barracks", defense_strength=50)

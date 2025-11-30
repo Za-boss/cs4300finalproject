@@ -12,7 +12,6 @@ class Node:
     state: "Colony"
     actions: Optional[tuple[tuple[str, int], ...]] = None
     parent: Optional["Node"] = None
-@dataclass
 class pf_stats:
     total_depth: int = 0
     average_depth: float = 0
@@ -44,6 +43,7 @@ def default_dfs(problem: "Colony_Wrapper", attempts: int):
                 break
                 #This might be entirely redundant because the loop only runs an amount equal to the actions per day
         newState = problem.transition(node.state, chosen_action_list)
+        problem.run_tick(newState)
         total_depth += 1
         if not newState.check_loss():
             frontier.append((Node(newState, tuple(action_stats), node), total_depth))
@@ -51,9 +51,10 @@ def default_dfs(problem: "Colony_Wrapper", attempts: int):
     return (False, last_seen_state)
 
 def heuristic_dfs(problem: "Colony_Wrapper", attempts: int):
+    #This function will have to run a BFS to get scores for all available actions so it can choose the best one
     pass    
 #This function attempts to roughly determine how many realistic win conditions there are
-def percentage_fuzzing(problem: "Colony_Wrapper", attempts: int=100000) -> "pf_stats": #bool return type is temporary just to make sure things run right
+def percentage_fuzzing(problem: "Colony_Wrapper", attempts: int=100000) -> "pf_stats": 
     stats = pf_stats()
 
     for i in range(attempts):
@@ -79,6 +80,7 @@ def percentage_fuzzing(problem: "Colony_Wrapper", attempts: int=100000) -> "pf_s
                     break
                     #This might be entirely redundant because the loop only runs an amount equal to the actions per day
             newState = problem.transition(node.state, chosen_action_list)
+            problem.run_tick(newState)
             total_depth += 1
             if not newState.check_loss():
                 frontier.append((Node(newState, tuple(action_stats), node), total_depth))
@@ -87,8 +89,4 @@ def percentage_fuzzing(problem: "Colony_Wrapper", attempts: int=100000) -> "pf_s
     stats.win_rate = stats.total_wins / stats.total_runs
     stats.average_depth = stats.total_depth / stats.total_runs
     return stats
-            
-
-
         
-    #Up next, set up the frontier and this search should be good to go

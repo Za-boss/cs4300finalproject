@@ -66,7 +66,8 @@ class Colony:
             if building.tick_effect == None:
                 continue
             building.power_modifier = min(1, staff_per_building / building.staff_needed)
-            building.tick_effect(self, building.power_modifier)
+            building.power_modifier = max(0, building.power_modifier)
+            building.tick_effect(self)
 
     def run_events(self) -> None:
         for event in self.events:
@@ -114,12 +115,13 @@ class Colony:
         self.current_day += 1
         self.food += self.base_food_production
         self.energy += self.base_energy_production
+        self.calc_food_consumption()
+        self.calc_population_change()
+        self.defense_capacity = self.calc_defense_capacity()
         self.apply_effects()
         self.run_events()
         self.run_building_effects()
-        self.defense_capacity = self.calc_defense_capacity()
-        self.calc_food_consumption()
-        self.calc_population_change()
+
         self.temp_population_growth_factor = 0# setting these to 0 so they can be modified by temporary effects
 
 def get_colony_actions() -> list[tuple[str, Callable, int]]:
