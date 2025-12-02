@@ -21,22 +21,22 @@ class Colony:
             self, 
             starting_buildings : list["Building"],
             events: list["Event"],
-            food: int = 200, 
+            food: float = 200, 
             base_defense_capacity: float = 50.0,
             population: int = 50,
             energy: float = 50.0,
-            base_food_production: int = 10,
-            base_energy_production: int = 10,
+            base_food_production: float = 10,
+            base_energy_production: float = 10,
             population_growth_factor: float = 0.02,
         ):
         self.current_day: int = 1
         self.base_defense_capacity: float = base_defense_capacity
-        self.food : int = food
-        self.base_food_production: int = base_food_production
+        self.food : float = food
+        self.base_food_production: float = base_food_production
         self.population: int = population
         self.buildings: list["Building"] = starting_buildings
         self.energy: float = energy
-        self.base_energy_production: int = base_energy_production
+        self.base_energy_production: float = base_energy_production
         self.events: list["Event"] = events
         self.current_effects: list[tuple[Callable, int]] = []
         self.population_growth_factor: float = population_growth_factor
@@ -71,9 +71,7 @@ class Colony:
     
     def run_building_effects(self) -> None:
         if not self.buildings:
-            return
-        staff_per_building = self.population / len(self.buildings)
-        
+            return        
         for building in self.buildings:
             building.tick_effect(self)
 
@@ -122,7 +120,6 @@ class Colony:
     def tick_step(self) -> None:
         self.temp_population_growth_factor = 0 
 
-        self.current_day += 1
         self.food += self.base_food_production
         self.energy += self.base_energy_production
         self.calc_food_consumption()
@@ -132,6 +129,9 @@ class Colony:
         self.run_building_effects()
         self.apply_effects()
         self.run_events()
+        self.current_day += 1
+
+        self.population = max(0, self.population)
 
 
 def get_colony_actions() -> list[tuple[str, Callable, int]]:

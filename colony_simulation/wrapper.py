@@ -1,18 +1,23 @@
 #This class wraps a colony in a wrapper and makes it easier for the search algorithm to interact with
 import math
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 from colony_simulation.colony import Colony, get_colony_actions
 from colony_simulation.building import Building, get_building_actions
+
+if TYPE_CHECKING:
+    from run import Heuristic_Values
 
 class Colony_Wrapper:
     def __init__(
             self, 
             initial_state: Colony,
-            available_buildings: list["Building"]
+            available_buildings: list["Building"],
+            heuristic_values: "Heuristic_Values"
         ) -> None:
         self.goal_day: int = 31
         self.initial_state: Colony = initial_state
         self.available_buildings: list["Building"] = available_buildings
+        self.heuristic_values = heuristic_values
         self.actions_per_day: int = 3
         self.actions_taken: int = 0
     def get_actions(self, colony_state: Colony, available_energy: float) -> list[tuple[str, Callable, int]]:
@@ -32,7 +37,7 @@ class Colony_Wrapper:
             action_list: list[tuple[str, Callable, int]]
         ) -> Colony:
         new_state: Colony = Colony(
-            colony_state.buildings[:], 
+            [b.clone() for b in colony_state.buildings], 
             colony_state.events[:], 
             food=colony_state.food,
             base_defense_capacity=colony_state.base_defense_capacity,
@@ -59,12 +64,7 @@ class Colony_Wrapper:
     def step_cost(self) -> float:
         return 1.0
     def heuristic(self, colony_state: Colony) -> float:
-        """Evaluate a colony state and return a heuristic score (higher is better).
 
-        The heuristic combines normalized metrics for food, energy, defense, and
-        population into a single float in the range [0.0, 1.0]. If the colony has
-        already lost, a strongly negative value is returned.
-        """
         def get_production_value(building: "Building", resource: str) -> int:
             return building.production.get(resource, 0)
         if colony_state.check_loss():
@@ -96,6 +96,7 @@ class Colony_Wrapper:
         building_population_prod = 0.0
         building_defense_prod = 0.0
         building_extra_defense = 0.0
+
         if colony_state.buildings:
             for building in colony_state.buildings:
                 building_food_prod += get_production_value(building, 'food') * projected_efficiency
@@ -106,32 +107,32 @@ class Colony_Wrapper:
                     building_extra_defense += building.defense_strength
                 
 
-        food_target = max(300.0, colony_state.population * 2.5)
+        food_target = max(self.heuristic_values.food_target_base, colony_state.population * (colony_state.food_consumption_factor + 0.5))
         effective_food = colony_state.food + colony_state.base_food_production + building_food_prod
         food_score = effective_food / food_target
 
-        energy_target = 250.0
+        energy_target = self.heuristic_values.energy_target
         effective_energy = colony_state.energy + colony_state.base_energy_production + building_energy_prod
         energy_score = effective_energy / energy_target
 
-        defense_target = 300
+        defense_target = self.heuristic_values.defense_target
         effective_defense = colony_state.defense_capacity + building_defense_prod + building_extra_defense
         defense_score = effective_defense / defense_target
 
-        population_target = 200
+        population_target = self.heuristic_values.population_target
         effective_population = expected_pop + building_population_prod
         population_score =  effective_population / population_target
 
         # Weighted combination (weights chosen to reflect relative importance)
-        w_food = 2.0
-        w_energy = 2.0
-        w_defense = 1.3
-        w_population = 2.0
+        w_food = self.heuristic_values.w_food
+        w_energy = self.heuristic_values.w_energy
+        w_defense = self.heuristic_values.w_defense
+        w_population = self.heuristic_values.w_population
 
-        if projected_efficiency < 0.8:
-            w_population = 10.0
-        if effective_food < food_target * .2: w_food = 5.0
-        if effective_energy < 0: w_energy = 4.0
+        if projected_efficiency < self.heuristic_values.efficiency_target:
+            w_population = self.heuristic_values.below_efficiency_population_w
+        if effective_food < food_target * .2: w_food = self.heuristic_values.below_food_target_food_w
+        if effective_energy < 0: w_energy = self.heuristic_values.below_energy_target_energy_w
 
         total_weight = w_food + w_energy + w_defense + w_population
 

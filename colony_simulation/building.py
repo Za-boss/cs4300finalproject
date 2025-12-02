@@ -13,6 +13,7 @@ class Building:
             building_cost: int = 50,
             production: dict[str, int] = {},
         ):
+
         self.building_name: str = building_name
         self.defense_strength: int = defense_strength
         self.staff_needed = staff_needed
@@ -28,6 +29,7 @@ class Building:
             return (True, f"Successfully built: {self.building_name}")
         else:
             return (False, f"Failed to build: {self.building_name}: lack of energy")
+        
     def clone(self) -> "Building":
         return Building(
             self.building_name,
@@ -36,6 +38,7 @@ class Building:
             self.building_cost,
             self.production
         )
+        
     def tick_effect(self, colony: "Colony") -> None:
         if not self.production:
             return
