@@ -21,4 +21,5 @@ class Event:
         self.firing_likelihood: float | None = firing_likelihood
         self.tick_effect: Callable | None = tick_effect
         self.fire_count = fire_count
-        
+    def __repr__(self) -> str:
+        return f"Event Name: {self.event_name} | Firing Dates: {self.fire_dates}"

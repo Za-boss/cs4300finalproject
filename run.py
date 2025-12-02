@@ -39,8 +39,8 @@ def setup_events(events : list[Event], days : int):
 
 
 def setup_simulation(expected_days : int) -> tuple[Colony, list[Building]]:
-    buildings = [nuclear_reactor.clone(), nuclear_reactor.clone()]
-    available_buildings = [nuclear_reactor, farm, barracks, space_port, military_academy]
+    buildings = [farm.clone(), nuclear_reactor.clone()]
+    available_buildings = [building for building in ALL_BUILDINGS]
     events = [event for event in ALL_EVENTS]
     event_list = setup_events(events, expected_days)
     colony_state = Colony(starting_buildings=buildings, events=event_list)
@@ -60,10 +60,19 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Agent runner for running the colony management agent")
     parser.add_argument('--algorithm', '--algo', type=str, choices=algorithms.keys(), required=False, default="default_dfs", help="What algorithm to use for this run of the colony management agents")
     parser.add_argument('--run_count', "--rc", type=int, default=10, required=False)
-
+    parser.add_argument('--attempt_count', "--ac", type=int, default=100, required=False)
+    parser.add_argument('--seed', '--s', type=int, required=False)
+    parser.add_argument('--display_timeline', '--dt', type=bool, required=False, default=False)
     args = parser.parse_args()
+    seed = args.seed
+    if not seed:
+        seed = random.randrange(10000000)
+    random.seed(seed)
+    print(f"Seed for this run: {seed}")
     algorithm = algorithms[args.algorithm]
     run_count = args.run_count
+    attempt_count = args.attempt_count
+    display_timeline = args.display_timeline
     GOAL_DAYS = 31
     colony, buildings = setup_simulation(GOAL_DAYS)
     colony_wrapper = Colony_Wrapper(colony, buildings)
@@ -78,24 +87,32 @@ def main() -> None:
                 Average depth: {stats.average_depth}
                 Nodes generated: {stats.nodes_generated}""")
         return
-    success, state = algorithm(colony_wrapper, run_count)
-    if success and state:
-        print(success)
-        print(f"""Colony stats:
-                Food: {state.food}
-                Population: {state.population}
-                defense readiness: {state.defense_capacity}
-                Energy stockpiles: {state.energy}
-                buildings: {state.buildings}""")
-    else:
-        print("whoops, you lost")
-        print(f"""Colony stats at last day:
-                Food: {state.food}
-                Population: {state.population}
-                defense readiness: {state.defense_capacity}
-                Energy stockpiles: {state.energy}
-                buildings: {state.buildings}""")
+    path, stats = algorithm(colony_wrapper, attempt_count)
+    print(f"""Search stats:
+                Attempts needed: {stats.attempts_needed}
+                Nodes generated: {stats.nodes_generated}
+                Nodes explored: {stats.nodes_explored}
+                Average depth: {stats.average_depth}
+                Success: {stats.success}""")
+    if not display_timeline or not path:
+        return
+    
+    print("Colony timeline:")
+    for day, node in enumerate(path):
+        print(day)
+        print(f"Actions: {node.actions}")
+        print(f"Energy: {node.state.energy}")
+        print(f"Population: {node.state.population}")
+        print(f"Defense: {node.state.defense_capacity}")
+        print(f"Food: {node.state.food}")
+        print(f"Total buildings: {len(node.state.buildings)}")
 
+        print("Events:")
+        for event in colony.events:
+            if not event.fire_dates:
+                continue
+            if day in event.fire_dates:
+                print(event.event_name)
 
     #Start by implementing a basic version of the "fuzzer" which is basic DFS first
 

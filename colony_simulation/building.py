@@ -25,7 +25,6 @@ class Building:
     def build(self, colony: "Colony") -> tuple[bool, str]:
         if colony.energy >= self.building_cost:
             colony.buildings.append(self.clone())
-            colony.energy -= self.building_cost
             return (True, f"Successfully built: {self.building_name}")
         else:
             return (False, f"Failed to build: {self.building_name}: lack of energy")

@@ -3,7 +3,7 @@ import random
 import math
 if TYPE_CHECKING:
     from building import Building
-    from events import Event
+    from colony_simulation.event import Event
 # future additions that are optional:
 # status effects: statuses that effect aspects about the colony over time
 # lingering event effects, statuses that are applied when an event fires
@@ -21,38 +21,50 @@ class Colony:
             self, 
             starting_buildings : list["Building"],
             events: list["Event"],
-            food: int = 500, 
+            food: int = 200, 
             base_defense_capacity: float = 50.0,
             population: int = 50,
-            energy: float = 50.0
+            energy: float = 50.0,
+            base_food_production: int = 10,
+            base_energy_production: int = 10,
+            population_growth_factor: float = 0.02,
         ):
         self.current_day: int = 1
         self.base_defense_capacity: float = base_defense_capacity
         self.food : int = food
-        self.base_food_production: int = 10
+        self.base_food_production: int = base_food_production
         self.population: int = population
         self.buildings: list["Building"] = starting_buildings
         self.energy: float = energy
-        self.base_energy_production: int = 10
+        self.base_energy_production: int = base_energy_production
         self.events: list["Event"] = events
         self.current_effects: list[tuple[Callable, int]] = []
-        self.population_growth_factor: float = 0.02
+        self.population_growth_factor: float = population_growth_factor
         self.temp_population_growth_factor: float = 0.0
         self.food_consumption_factor: float = 2.0
         self.has_lost = False
         self.defense_capacity: float = self.calc_defense_capacity()
         #consider adding a population capacity somewhere
 
+    def calc_building_power_modifiers(self) -> None:
+        total_staff_needed = 0
+        for building in self.buildings:
+            total_staff_needed += building.staff_needed
+        if total_staff_needed == 0:
+            return # no buildings at all
+        fulfillment_ratio = min(1, self.population / total_staff_needed)
+        for building in self.buildings:
+            building.power_modifier = max(0, fulfillment_ratio)
+        #There may be a minor bug in here somewhere
+
     def calc_defense_capacity(self) -> float:
         if not self.buildings:
             return self.base_defense_capacity
         extra_defense = 0
-        staff_per_building = self.population / len(self.buildings)
 
         for building in self.buildings:
             if building.defense_strength == 0:
                 continue
-            building.power_modifier = min(1, staff_per_building/building.staff_needed)
             extra_defense += building.defense_strength * building.power_modifier
 
         return self.base_defense_capacity + extra_defense
@@ -63,10 +75,6 @@ class Colony:
         staff_per_building = self.population / len(self.buildings)
         
         for building in self.buildings:
-            if building.tick_effect == None:
-                continue
-            building.power_modifier = min(1, staff_per_building / building.staff_needed)
-            building.power_modifier = max(0, building.power_modifier)
             building.tick_effect(self)
 
     def run_events(self) -> None:
@@ -112,43 +120,45 @@ class Colony:
             return True
         return False
     def tick_step(self) -> None:
+        self.temp_population_growth_factor = 0 
+
         self.current_day += 1
         self.food += self.base_food_production
         self.energy += self.base_energy_production
         self.calc_food_consumption()
         self.calc_population_change()
+        self.calc_building_power_modifiers()
         self.defense_capacity = self.calc_defense_capacity()
+        self.run_building_effects()
         self.apply_effects()
         self.run_events()
-        self.run_building_effects()
 
-        self.temp_population_growth_factor = 0# setting these to 0 so they can be modified by temporary effects
 
 def get_colony_actions() -> list[tuple[str, Callable, int]]:
-    #These invest actions should have some sort of cost but I'm not sure what it should be
-    food_investment_cost = 10
+    food_investment_cost = 50
     def invest_in_food_production(colony: "Colony") -> tuple[bool, str]:
-        colony.energy -= food_investment_cost
-        colony.base_food_production += 3
+        colony.base_food_production *= 1.03
         return (True, "Food production successfully invested in")
     
-    energy_investment_cost = 25
+    energy_investment_cost = 50
     def invest_in_energy_production(colony: "Colony") -> tuple[bool, str]:
-        colony.energy -= energy_investment_cost
-        colony.base_energy_production += 5
+        colony.base_energy_production *= 1.04
         return (True, "Energy production successfully invested in")
     
-    defense_investment_cost = 10
+    defense_investment_cost = 50
     def invest_in_defense(colony: "Colony") -> tuple[bool, str]:
-        colony.energy -= defense_investment_cost
-        colony.base_defense_capacity += 10
+        colony.base_defense_capacity*=1.01
         return (True, "Defense successfully invested in")
     
-    population_investment_cost = 10
+    population_investment_cost = 50
     def invest_in_population_increase(colony: "Colony") -> tuple[bool, str]:
-        colony.energy -= population_investment_cost
-        colony.population_growth_factor += 0.005
+        colony.population_growth_factor *= 1.02
         return (True, "Population increase successfully invested in")
+    
+    staff_recruitment_cost = 20
+    def recruit_staff(colony: "Colony") -> tuple[bool, str]:
+        colony.population += 10
+        return (True, "Successfully recruited 10 new staff members")
     
     do_nothing_cost = 0 # lol
     def do_nothing(colony: "Colony"):
@@ -159,6 +169,7 @@ def get_colony_actions() -> list[tuple[str, Callable, int]]:
         ("invest in energy production", invest_in_energy_production, energy_investment_cost),
         ("invest in defense", invest_in_defense, defense_investment_cost),
         ("invest in population increase", invest_in_population_increase, population_investment_cost),
+        ("recruit staff", recruit_staff, staff_recruitment_cost),
         ("Do nothing", do_nothing, do_nothing_cost)
     ]
 

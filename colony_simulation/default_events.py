@@ -1,16 +1,18 @@
 from typing import TYPE_CHECKING
 import random
-from colony_simulation.events import *
+from colony_simulation.event import *
 if TYPE_CHECKING:
     from colony import Colony
 def annihilate_colony_event_fire(colony: "Colony") -> None:
-    colony.population -= 1000
+    colony.population -= 10000
 
 from typing import TYPE_CHECKING
 import random
-from colony_simulation.events import *
+from colony_simulation.event import *
 if TYPE_CHECKING:
     from colony import Colony
+
+#Some of the events in this file should be modified as it may be too harsh
 
 # ===== POSITIVE EVENTS =====
 
@@ -52,6 +54,7 @@ def rocket_barrage_event(colony: "Colony") -> None:
             while chosen_index in chosen_indices.keys():
                 building_destroyed = random.choice(colony.buildings)
                 chosen_index = colony.buildings.index(building_destroyed)
+                chosen_indices[chosen_index] = True
             buildings_to_remove.append(random.choice(colony.buildings))
         if buildings_to_remove:
             for building in buildings_to_remove:
@@ -59,82 +62,74 @@ def rocket_barrage_event(colony: "Colony") -> None:
         colony.population -= 10
 
 def building_destroy_event_fire(colony: "Colony") -> None:
-    if colony.buildings:
-        building = random.choice(colony.buildings)
-        colony.buildings.remove(building)
-    else:
-        colony.population -= 10
+    buildings_destroyed = 0
+    for _ in range(2):
+        if colony.buildings:
+            building = random.choice(colony.buildings)
+            colony.buildings.remove(building)
+            buildings_destroyed += 1
+    
+    if buildings_destroyed == 0:
+        colony.population -= 30
 
 def alien_invasion_event_fire(colony: "Colony") -> None:
-    if colony.defense_capacity >= 150:
-        colony.population -= 15
+    if colony.defense_capacity >= 200:
+        colony.population -= 20
     else:
-        colony.population -= 25
+        colony.population -= 40
 
 def alien_infection_event_fire(colony: "Colony") -> None:
     def infection_effect(colony: "Colony"):
-        colony.temp_population_growth_factor -= 0.1 #This can be used as a template for effect functions that apply continuous effects, this inner function will fire on every tick until its duration is up
+        colony.temp_population_growth_factor -= 0.15
     
-    colony.current_effects.append((infection_effect, 3))
-    colony.population -= 10
+    colony.current_effects.append((infection_effect, 5))
+    colony.population -= 20
 
 def solar_flare_event_fire(colony: "Colony") -> None:
-    """Solar flare damages energy systems"""
-    energy_loss = min(colony.energy * 0.4, colony.energy - 10)
+    energy_loss = min(colony.energy * 0.60, colony.energy - 20)
     colony.energy -= energy_loss
-    colony.base_energy_production = max(5, colony.base_energy_production - 3)
+    colony.base_energy_production = max(5, colony.base_energy_production - 5)
 
 def plague_event_fire(colony: "Colony") -> None:
-    """Disease spreads through colony"""
     def plague_effect(colony: "Colony"):
-        colony.temp_population_growth_factor -= 0.18
-        colony.population -= random.randint(2, 15)
+        colony.temp_population_growth_factor -= 0.25
+        colony.population -= random.randint(5, 20)
     
-    colony.current_effects.append((plague_effect, 7))
-    colony.population -= random.randint(10, 20)
+    colony.current_effects.append((plague_effect, 10))
+    colony.population -= random.randint(20, 40)
 
 def food_contamination_event_fire(colony: "Colony") -> None:
-    """Food stores are contaminated"""
-    food_loss = int(min(colony.food * 0.5, colony.food - 50))
+    food_loss = int(min(colony.food * 0.75, colony.food - 100))
     colony.food -= food_loss
-    colony.population -= random.randint(5, 10)
+    colony.population -= random.randint(15, 25)
 
 def dust_storm_event_fire(colony: "Colony") -> None:
-    """Severe dust storm impacts operations"""
     def storm_effect(colony: "Colony"):
-        colony.base_food_production = max(5, colony.base_food_production - 2)
-        colony.base_energy_production = max(5, colony.base_energy_production - 2)
+        colony.base_food_production = max(5, colony.base_food_production - 5)
+        colony.base_energy_production = max(5, colony.base_energy_production - 5)
     
-    colony.current_effects.append((storm_effect, 4))
+    colony.current_effects.append((storm_effect, 6))
 
 def equipment_failure_event_fire(colony: "Colony") -> None:
-    """Critical equipment breaks down"""
-    colony.energy -= min(colony.energy * 0.3, colony.energy - 20)
-    colony.base_defense_capacity = max(30, colony.base_defense_capacity - 15)
-
-# ===== NEUTRAL/CHOICE EVENTS =====
+    colony.energy -= min(colony.energy * 0.50, colony.energy - 40)
+    colony.base_defense_capacity = max(30, colony.base_defense_capacity - 30)
 
 def strange_signal_event_fire(colony: "Colony") -> None:
-    """Unknown signal detected - risky investigation"""
     if random.random() < 0.5:
-        # Good outcome
         colony.energy += 100
         colony.base_energy_production += 3
     else:
-        # Bad outcome
-        colony.population -= random.randint(10, 15)
-        colony.energy -= 50
+        colony.population -= random.randint(20, 30)
+        colony.energy -= 100
 
 def wildlife_encounter_event_fire(colony: "Colony") -> None:
-    """Encounter with alien wildlife"""
-    if colony.defense_capacity >= 100:
+    if colony.defense_capacity >= 150:
         colony.food += random.randint(50, 100)
     else:
-        colony.population -= random.randint(5, 15)
-        colony.food -= random.randint(20, 40)
+        colony.population -= random.randint(15, 30)
+        colony.food -= random.randint(50, 100)
 
 def underground_discovery_event_fire(colony: "Colony") -> None:
-    """Discover underground caverns"""
     discovery_type = random.choice(['water', 'minerals', 'danger'])
     
     if discovery_type == 'water':
@@ -143,28 +138,25 @@ def underground_discovery_event_fire(colony: "Colony") -> None:
         colony.energy += 150
         colony.base_energy_production += 4
     else:
-        colony.population -= random.randint(8, 12)
-        if colony.buildings:
-            colony.buildings.remove(random.choice(colony.buildings))
-
-# ===== SCALING EVENTS (difficulty increases with time) =====
+        colony.population -= random.randint(15, 25)
+        for _ in range(2):
+            if colony.buildings:
+                colony.buildings.remove(random.choice(colony.buildings))
 
 def escalating_raids_event_fire(colony: "Colony") -> None:
-    """Raids that get worse over time"""
-    raid_strength = 50 + (colony.current_day * 2.5)
+    raid_strength = 100 + (colony.current_day * 4.0)
     
     if colony.defense_capacity >= raid_strength:
-        colony.population -= random.randint(3, 8)
+        colony.population -= random.randint(5, 10)
     else:
-        colony.population -= random.randint(15, 25)
-        colony.food -= random.randint(50, 100)
-        colony.energy -= random.randint(30, 60)
+        colony.population -= random.randint(30, 50)
+        colony.food -= random.randint(100, 200)
+        colony.energy -= random.randint(60, 120)
 
 def resource_depletion_event_fire(colony: "Colony") -> None:
-    """Resources become harder to extract over time"""
-    depletion_factor = min(0.5, colony.current_day * 0.01)
-    colony.base_food_production = max(5, int(colony.base_food_production * (1 - depletion_factor)))
-    colony.base_energy_production = max(5, int(colony.base_energy_production * (1 - depletion_factor)))
+    depletion_factor = min(0.75, colony.current_day * 0.015)
+    colony.base_food_production = max(3, int(colony.base_food_production * (1 - depletion_factor)))
+    colony.base_energy_production = max(3, int(colony.base_energy_production * (1 - depletion_factor)))
 
 # Positive events
 supply_drop = Event(event_name="supply_drop", fire_event=supply_drop_event_fire, firing_likelihood=0.15, fire_count=4)
@@ -173,20 +165,19 @@ discovery = Event(event_name="discovery", fire_event=discovery_event_fire, firin
 bountiful_harvest = Event(event_name="bountiful_harvest", fire_event=bountiful_harvest_event_fire, fire_dates=(15, 25))
 
 # Negative events
-solar_flare = Event(event_name="solar_flare", fire_event=solar_flare_event_fire, firing_likelihood=0.12, fire_count=3)
-plague = Event(event_name="plague", fire_event=plague_event_fire, fire_dates=(12, 17))
-food_contamination = Event(event_name="food_contamination", fire_event=food_contamination_event_fire, firing_likelihood=0.08, fire_count=2)
-dust_storm = Event(event_name="dust_storm", fire_event=dust_storm_event_fire, firing_likelihood=0.2, fire_count=5)
-equipment_failure = Event(event_name="equipment_failure", fire_event=equipment_failure_event_fire, fire_dates=(8, 15, 19))
-meteor_strike = Event(event_name="meteor_strike", fire_event=building_destroy_event_fire, fire_dates=(3, 7, 19))
-alien_invasion = Event(event_name="alien_invasion", fire_event=alien_invasion_event_fire, firing_likelihood=.2, fire_count=3)
-alien_infection = Event(event_name="alien infection", fire_event=alien_infection_event_fire, fire_dates=(5, 20, 31))
-rocket_barrage = Event(event_name="Rocket barrage", fire_event=rocket_barrage_event, firing_likelihood=.08, fire_count=1)
-
+solar_flare = Event(event_name="solar_flare", fire_event=solar_flare_event_fire, firing_likelihood=0.08, fire_count=3)
+plague = Event(event_name="plague", fire_event=plague_event_fire, fire_dates=(15, 26))
+food_contamination = Event(event_name="food_contamination", fire_event=food_contamination_event_fire, firing_likelihood=0.08, fire_count=3)
+dust_storm = Event(event_name="dust_storm", fire_event=dust_storm_event_fire, firing_likelihood=0.12, fire_count=4)
+equipment_failure = Event(event_name="equipment_failure", fire_event=equipment_failure_event_fire, fire_dates=(10, 22))
+meteor_strike = Event(event_name="meteor_strike", fire_event=building_destroy_event_fire, fire_dates=(7, 20))
+alien_invasion = Event(event_name="alien_invasion", fire_event=alien_invasion_event_fire, firing_likelihood=0.05, fire_count=2)
+alien_infection = Event(event_name="alien infection", fire_event=alien_infection_event_fire, fire_dates=(14, 28))
+rocket_barrage = Event(event_name="Rocket barrage", fire_event=rocket_barrage_event, firing_likelihood=0.05, fire_count=2)
 # Neutral/choice events
 strange_signal = Event(event_name="strange_signal", fire_event=strange_signal_event_fire, firing_likelihood=0.1, fire_count=2)
-wildlife_encounter = Event(event_name="wildlife_encounter", fire_event=wildlife_encounter_event_fire, firing_likelihood=0.15, fire_count=4)
-underground_discovery = Event(event_name="underground_discovery", fire_event=underground_discovery_event_fire, fire_dates=(9, 23))
+wildlife_encounter = Event(event_name="wildlife_encounter", fire_event=wildlife_encounter_event_fire, firing_likelihood=0.15, fire_count=8)
+underground_discovery = Event(event_name="underground_discovery", fire_event=underground_discovery_event_fire, fire_dates=(9, 23, 28))
 
 # Scaling events
 escalating_raids = Event(event_name="escalating_raids", fire_event=escalating_raids_event_fire, firing_likelihood=0.18, fire_count=6)

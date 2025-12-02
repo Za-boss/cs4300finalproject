@@ -1,4 +1,5 @@
 #This class wraps a colony in a wrapper and makes it easier for the search algorithm to interact with
+import math
 from typing import Callable
 from colony_simulation.colony import Colony, get_colony_actions
 from colony_simulation.building import Building, get_building_actions
@@ -14,24 +15,21 @@ class Colony_Wrapper:
         self.available_buildings: list["Building"] = available_buildings
         self.actions_per_day: int = 3
         self.actions_taken: int = 0
-    def get_actions(self, colony_state: Colony, available_energy: float) -> list[tuple[str, Callable, int]] | None:
-        if self.actions_taken >= self.actions_per_day:
-            self.actions_taken = 0
-            return None
+    def get_actions(self, colony_state: Colony, available_energy: float) -> list[tuple[str, Callable, int]]:
         colony_actions = [
             action for action in get_colony_actions() 
-            if available_energy >= action[2] or action[2] == 0 and not action[2] < 0
+            if available_energy >= action[2] or action[2] == 0
         ]
         building_actions = [
             action for action in get_building_actions(self.available_buildings) 
-            if available_energy >= action[2] or action[2] == 0 and not action[2] < 0
+            if available_energy >= action[2] or action[2] == 0
         ]
         actions = colony_actions + building_actions
         return actions
     def transition(
             self, 
             colony_state: Colony, 
-            action_list: list[Callable]
+            action_list: list[tuple[str, Callable, int]]
         ) -> Colony:
         new_state: Colony = Colony(
             colony_state.buildings[:], 
@@ -39,11 +37,18 @@ class Colony_Wrapper:
             food=colony_state.food,
             base_defense_capacity=colony_state.base_defense_capacity,
             population=colony_state.population,
-            energy=colony_state.energy
+            energy=colony_state.energy,
+            base_food_production=colony_state.base_food_production,
+            base_energy_production=colony_state.base_energy_production,
+            population_growth_factor=colony_state.population_growth_factor
         )
         new_state.current_day = colony_state.current_day
-        for action in action_list:
+        for _name, action, cost in action_list:
             action(new_state)
+            new_state.energy -= cost
+
+        new_state.calc_building_power_modifiers()
+
         return new_state
     def run_tick(self, state : Colony):
         state.tick_step()
@@ -61,49 +66,73 @@ class Colony_Wrapper:
         already lost, a strongly negative value is returned.
         """
         def get_production_value(building: "Building", resource: str) -> int:
-            if resource in building.production.keys():
-                return building.production[resource]
-            return 0
+            return building.production.get(resource, 0)
         if colony_state.check_loss():
             return -1e6
 
-        # Estimate building contributions taking staffing into account
+
+        growth = colony_state.population * (colony_state.population_growth_factor + colony_state.temp_population_growth_factor)
+        if growth >= 0:
+            growth = max(2, math.ceil(growth))
+        else:
+            growth = min(-2, math.floor(growth))
+        
+        if colony_state.food <= 0:
+            growth -= max(10, math.ceil(colony_state.population // 10))
+
+        expected_pop = colony_state.population + growth
+
+
+        total_staff_needed = sum(b.staff_needed for b in colony_state.buildings)
+        
+        if total_staff_needed > 0:
+            projected_efficiency = min(1.0, expected_pop / total_staff_needed)
+        else:
+            projected_efficiency = 1.0
+
+
         building_food_prod = 0.0
         building_energy_prod = 0.0
         building_population_prod = 0.0
         building_defense_prod = 0.0
+        building_extra_defense = 0.0
         if colony_state.buildings:
             for building in colony_state.buildings:
-                #Need to change this so it uses the production dictionary in the building
-                power_modifier = building.power_modifier
-                building_food_prod += get_production_value(building, 'food') * power_modifier
-                building_energy_prod += get_production_value(building, 'energy') * power_modifier
-                building_population_prod += get_production_value(building, 'population') * power_modifier
-                building_defense_prod += get_production_value(building, 'defense') * power_modifier
+                building_food_prod += get_production_value(building, 'food') * projected_efficiency
+                building_energy_prod += get_production_value(building, 'energy') * projected_efficiency
+                building_population_prod += get_production_value(building, 'population') * projected_efficiency
+                building_defense_prod += get_production_value(building, 'defense') * projected_efficiency
+                if building.defense_strength:
+                    building_extra_defense += building.defense_strength
+                
 
-        # normalized sub-scores in 0..1 (higher is better)
-        # consider current stock + one-tick expected production
-        food_target = max(1.0, colony_state.population * 4)
+        food_target = max(300.0, colony_state.population * 2.5)
         effective_food = colony_state.food + colony_state.base_food_production + building_food_prod
-        food_score = min(1.0, effective_food / food_target)
+        food_score = effective_food / food_target
 
-        energy_target = 150.0
+        energy_target = 250.0
         effective_energy = colony_state.energy + colony_state.base_energy_production + building_energy_prod
-        energy_score = min(1.0, effective_energy / energy_target)
+        energy_score = effective_energy / energy_target
 
-        defense_target = 150
-        effective_defense = colony_state.defense_capacity + building_defense_prod
-        defense_score = min(1.0, effective_defense / defense_target)
+        defense_target = 300
+        effective_defense = colony_state.defense_capacity + building_defense_prod + building_extra_defense
+        defense_score = effective_defense / defense_target
 
         population_target = 200
-        effective_population = colony_state.population + building_population_prod
-        population_score = min(1.0, effective_population / population_target)
+        effective_population = expected_pop + building_population_prod
+        population_score =  effective_population / population_target
 
         # Weighted combination (weights chosen to reflect relative importance)
-        w_food = 3.0
+        w_food = 2.0
         w_energy = 2.0
-        w_defense = 2.0
-        w_population = 3.0
+        w_defense = 1.3
+        w_population = 2.0
+
+        if projected_efficiency < 0.8:
+            w_population = 10.0
+        if effective_food < food_target * .2: w_food = 5.0
+        if effective_energy < 0: w_energy = 4.0
+
         total_weight = w_food + w_energy + w_defense + w_population
 
         combined = (
