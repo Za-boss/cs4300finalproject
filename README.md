@@ -1,4 +1,3 @@
-````markdown
 # Colony Management AI Simulation
 
 This project simulates a resource management colony where an AI agent must survive for a set number of days (default 31) by managing resources (Food, Energy, Population, Defense) and constructing buildings.
@@ -109,7 +108,3 @@ The AI makes decisions based on the following weighted values (found in `Heurist
 
   * **Weights (`w_`):** How much the agent values having raw resources (Food, Energy, Defense, Population).
   * **Targets (`_target`):** The specific amount of a resource the agent aims to maintain.
-<!-- end list -->
-
-```
-```
