@@ -1,64 +1,115 @@
-# Run Instructions
+````markdown
+# Colony Management AI Simulation
 
-The colony simulation is executed via the main script, `run.py`. It uses command-line arguments to select the AI algorithm, adjust its parameters, and control the output detail.
+This project simulates a resource management colony where an AI agent must survive for a set number of days (default 31) by managing resources (Food, Energy, Population, Defense) and constructing buildings.
 
-### Basic Execution
+The project consists of three main components:
+1.  **Training (`train.py`):** Uses a Genetic Algorithm to evolve optimal heuristic weights.
+2.  **Benchmarking (`benchmark.py`):** Rigorously tests trained weights against a baseline and a control group (Default DFS).
+3.  **Simulation (`run.py`):** Visualizes specific runs and executes the agent in real-time.
 
-To run the simulation with the default settings (Default DFS, 100 attempts, 3 actions per day):
+---
 
+## 1. Workflow Overview
+
+To build the best AI agent, follow this workflow:
+
+1.  **Train:** Run `train.py` to evolve a set of weights for the simulation to use.
+2.  **Benchmark:** Use `benchmark.py` in order to check the accuracy of the given weights.
+3.  **Visualize:** Use `run.py` with your weight file to watch the timeline of a specific simulation.
+
+
+---
+
+## 2. Training New Agents (`train.py`)
+
+The `train.py` script uses a genetic algorithm to tune the `Heuristic_Values`. It generates a population of random agents, evaluates them against random scenarios, and mutates the winners over several generations.
+
+### Usage
 ```bash
-python3 run.py
-```
+# Train for 20 generations, with 50 agents per generation
+# Save the best resulting weights to 'my_best_weights.txt'
+python3 train.py --generations 20 --population-size 50 --output-file my_best_weights.txt
+````
+
+### Arguments
+
+| Argument | Flag | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `--output-file` | `--of` | **Required** | The file path to save the winning heuristic weights. |
+| `--generations` | `--g` | `10` | Number of generations to evolve the agents. |
+| `--population-size` | `--ps` | `50` | Number of agents in every generation. |
+| `--num-simulations` | `--ns` | `10` | How many random scenarios each agent attempts per generation (higher = more robust). |
+| `--top-k` | `--tk` | `5` | How many top agents survive to reproduce in the next generation. |
 
 -----
 
-## Command Line Arguments
+## 3\. Benchmarking (`benchmark.py`)
 
-The following arguments can be used to customize the simulation run:
+Once you have a weight file, use `benchmark.py` to audit it. This script runs a "3-Way Handshake" on identical seeds:
 
-| Argument | Short Flag | Type | Default | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `--algorithm` | `--algo` | string | `default_dfs` | **The search algorithm to use.** Valid choices are: `default_dfs`, `heuristic_dfs`, and `percentage_fuzzing`. |
-| `--run_count` | `--rc` | integer | `10` | **Total runs for fuzzing.** Only used when `--algorithm` is set to `percentage_fuzzing`. |
-| `--attempt_count` | `--ac` | integer | `100` | **Maximum search attempts.** The maximum number of attempts at solving the problem the Depth-First Search (DFS) algorithms (`default_dfs`, `heuristic_dfs`) are allowed to execute. |
-| `--seed` | `--s` | integer | Random | The seed for the random number generator. If left blank, a random seed is generated and printed. Use this to reproduce a specific simulation run. |
-| `--display_timeline`| `--dt` | boolean | `False` | Whether or not to display the detailed day-by-day timeline, including the AI's actions, resource changes, and triggered events. |
-| `--actions-per-day`| `--apd` | integer | `3` | The number of actions the agent is allowed to take each day. **Clamped** between a minimum of `1` and a maximum of `6`. |
+1.  **Candidate:** Your trained weights.
+2.  **Baseline:** Default hardcoded weights (or a second file).
+3.  **Control:** Default DFS (Blind search).
+
+### Usage
+
+```bash
+# Compare 'my_best_weights.txt' against the defaults over 50 scenarios
+python3 benchmark.py --candidate my_best_weights.txt --scenarios 50
+```
+
+### Arguments
+
+| Argument | Flag | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `--candidate` | `-c` | **Required** | Path to the weight file you want to test. |
+| `--baseline` | `-b` | `None` | Path to a second weight file to compare against. If omitted, uses default hardcoded weights. |
+| `--scenarios` | `-n` | `50` | Number of random seeds (universes) to test. |
+| `--node-expansions`| `--nea`| `500` | Max nodes the search is allowed to explore. |
+| `--seed` | `-s` | Random | Master seed for the benchmark batch. |
 
 -----
 
-## Usage Examples
+## 4\. Running & Visualization (`run.py`)
 
-**1. Running the Heuristic DFS Algorithm:**
+The `run.py` script is used to execute a single agent or fuzz the simulation. It is best used for debugging specific seeds or watching the decision-making process.
+
+### Usage
+
+**Run through a scenario with an algorithm and see the results**
 
 ```bash
-python3 run.py --algo heuristic_dfs
+python3 run.py --algo heuristic_dfs --wf my_best_weights.txt --seed 12345 --dt True
 ```
 
-**2. Viewing a Detailed Timeline of a Specific Run:**
-Use this to analyze the exact path the agent took. The seed ensures reproducibility.
+**Run the default "blind" DFS (Control):**
 
 ```bash
-python3 run.py --seed 420420 --dt True
+python3 run.py --algo default_dfs
 ```
 
-**3. Running the Percentage Fuzzing Algorithm:**
-The `--rc` argument dictates the number of times the random simulation is run to determine a rough overall win rate for a given scenario.
+### Arguments
 
-```bash
-python3 run.py --algo percentage_fuzzing --rc 500
+| Argument | Flag | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `--algorithm` | `--algo` | `default_dfs` | Choose `default_dfs`, `heuristic_dfs`, or `percentage_fuzzing`. |
+| `--weight-file` | `--wf` | `None` | Path to a file containing heuristic weights. Uses internal defaults if blank. |
+| `--display-timeline`| `--dt` | `False` | Prints the day-by-day actions, resources, and events. |
+| `--node-expansions-allowed`| `--nea`| `500` | Max search depth/nodes for DFS algorithms. |
+| `--actions-per-day`| `--apd` | `3` | Actions allowed per day (Min 1, Max 6). |
+| `--seed` | `--s` | Random | RNG seed. |
+| `--run-count` | `--rc` | `10` | Only used for `percentage_fuzzing`. |
+
+-----
+
+## 5\. Heuristics Explanation
+
+The AI makes decisions based on the following weighted values (found in `Heuristic_Values`). These are the parameters optimized by `train.py`:
+
+  * **Weights (`w_`):** How much the agent values having raw resources (Food, Energy, Defense, Population).
+  * **Targets (`_target`):** The specific amount of a resource the agent aims to maintain.
+<!-- end list -->
+
 ```
-
-**4. Adjusting the Agent's Daily Actions:**
-Allows the agent to take up to 6 actions per day instead of the default 3.
-
-```bash
-python3 run.py --actions-per-day 6
-```
-
-**5. Increasing Search Attempts:**
-Give the default DFS or heuristic DFS a higher amount of attempts to potentially find a solution for a difficult seed.
-
-```bash
-python3 run.py --ac 500
 ```

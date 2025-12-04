@@ -21,12 +21,12 @@ class Colony:
             self, 
             starting_buildings : list["Building"],
             events: list["Event"],
-            food: float = 200, 
-            base_defense_capacity: float = 50.0,
-            population: int = 50,
-            energy: float = 50.0,
-            base_food_production: float = 10,
-            base_energy_production: float = 10,
+            food: float = 600, 
+            base_defense_capacity: float = 70.0,
+            population: int = 200,
+            energy: float = 150.0,
+            base_food_production: float = 30,
+            base_energy_production: float = 50,
             population_growth_factor: float = 0.02,
         ):
         self.current_day: int = 1
@@ -41,6 +41,7 @@ class Colony:
         self.current_effects: list[tuple[Callable, int]] = []
         self.population_growth_factor: float = population_growth_factor
         self.temp_population_growth_factor: float = 0.0
+        self.temp_energy_production_modifier: float = 1.0
         self.food_consumption_factor: float = 2.0
         self.has_lost = False
         self.defense_capacity: float = self.calc_defense_capacity()
@@ -118,10 +119,11 @@ class Colony:
             return True
         return False
     def tick_step(self) -> None:
+        #Set to 0 so they can be modified
         self.temp_population_growth_factor = 0 
+        self.temp_energy_production_modifier = 1.0
 
         self.food += self.base_food_production
-        self.energy += self.base_energy_production
         self.calc_food_consumption()
         self.calc_population_change()
         self.calc_building_power_modifiers()
@@ -131,33 +133,35 @@ class Colony:
         self.run_events()
         self.current_day += 1
 
+        self.energy += self.base_energy_production * self.temp_energy_production_modifier
+
         self.population = max(0, self.population)
 
 
 def get_colony_actions() -> list[tuple[str, Callable, int]]:
     food_investment_cost = 50
     def invest_in_food_production(colony: "Colony") -> tuple[bool, str]:
-        colony.base_food_production *= 1.03
+        colony.base_food_production *= 1.06
         return (True, "Food production successfully invested in")
     
     energy_investment_cost = 50
     def invest_in_energy_production(colony: "Colony") -> tuple[bool, str]:
-        colony.base_energy_production *= 1.04
+        colony.base_energy_production *= 1.08
         return (True, "Energy production successfully invested in")
     
     defense_investment_cost = 50
     def invest_in_defense(colony: "Colony") -> tuple[bool, str]:
-        colony.base_defense_capacity*=1.01
+        colony.base_defense_capacity*=1.02
         return (True, "Defense successfully invested in")
     
     population_investment_cost = 50
     def invest_in_population_increase(colony: "Colony") -> tuple[bool, str]:
-        colony.population_growth_factor *= 1.02
+        colony.population_growth_factor *= 1.04
         return (True, "Population increase successfully invested in")
     
-    staff_recruitment_cost = 20
+    staff_recruitment_cost = 50
     def recruit_staff(colony: "Colony") -> tuple[bool, str]:
-        colony.population += 10
+        colony.population += 20
         return (True, "Successfully recruited 10 new staff members")
     
     do_nothing_cost = 0 # lol

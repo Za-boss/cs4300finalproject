@@ -9,8 +9,8 @@ class Building:
             self, 
             building_name: str,
             defense_strength: int = 0,
-            staff_needed: int = 10,
-            building_cost: int = 50,
+            staff_needed: int = 15,
+            building_cost: int = 150,
             production: dict[str, int] = {},
         ):
 

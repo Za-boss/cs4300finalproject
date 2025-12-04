@@ -1,5 +1,6 @@
 #This class wraps a colony in a wrapper and makes it easier for the search algorithm to interact with
 import math
+import random
 from typing import Callable, TYPE_CHECKING
 from colony_simulation.colony import Colony, get_colony_actions
 from colony_simulation.building import Building, get_building_actions
@@ -30,6 +31,7 @@ class Colony_Wrapper:
             if available_energy >= action[2] or action[2] == 0
         ]
         actions = colony_actions + building_actions
+        random.shuffle(actions)
         return actions
     def transition(
             self, 
@@ -55,14 +57,19 @@ class Colony_Wrapper:
         new_state.calc_building_power_modifiers()
 
         return new_state
+    
     def run_tick(self, state : Colony):
         state.tick_step()
+    
     def goal_test(self, colony_state: Colony) -> bool:
         return (colony_state.current_day > self.goal_day)
+    
     def fail_test(self, colony_state: Colony) -> bool:
         return colony_state.check_loss()
+    
     def step_cost(self) -> float:
         return 1.0
+    
     def heuristic(self, colony_state: Colony) -> float:
 
         def get_production_value(building: "Building", resource: str) -> int:
@@ -111,9 +118,9 @@ class Colony_Wrapper:
         effective_food = colony_state.food + colony_state.base_food_production + building_food_prod
         food_score = effective_food / food_target
 
-        energy_target = self.heuristic_values.energy_target
-        effective_energy = colony_state.energy + colony_state.base_energy_production + building_energy_prod
-        energy_score = effective_energy / energy_target
+        energy_prod_target = self.heuristic_values.energy_prod_target
+        effective_energy_prod = colony_state.energy + colony_state.base_energy_production + building_energy_prod
+        energy_score = effective_energy_prod / energy_prod_target
 
         defense_target = self.heuristic_values.defense_target
         effective_defense = colony_state.defense_capacity + building_defense_prod + building_extra_defense
@@ -128,11 +135,6 @@ class Colony_Wrapper:
         w_energy = self.heuristic_values.w_energy
         w_defense = self.heuristic_values.w_defense
         w_population = self.heuristic_values.w_population
-
-        if projected_efficiency < self.heuristic_values.efficiency_target:
-            w_population = self.heuristic_values.below_efficiency_population_w
-        if effective_food < food_target * .2: w_food = self.heuristic_values.below_food_target_food_w
-        if effective_energy < 0: w_energy = self.heuristic_values.below_energy_target_energy_w
 
         total_weight = w_food + w_energy + w_defense + w_population
 

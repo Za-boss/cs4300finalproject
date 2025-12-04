@@ -71,11 +71,11 @@ def percentage_fuzzing(problem: "Colony_Wrapper", attempts: int=100000) -> "pf_s
     
     return stats
 
-def default_dfs(problem: "Colony_Wrapper", attempts: int):
+def default_dfs(problem: "Colony_Wrapper", node_expansions_allowed: int):
     stats = search_stats()
     total_depth = 0
 
-    for i in range(attempts):
+    while stats.nodes_explored < node_expansions_allowed:
         stats.attempts_needed += 1
         frontier = [(Node(problem.initial_state), 0)]
         last_seen_state: Node | None = None
@@ -84,6 +84,8 @@ def default_dfs(problem: "Colony_Wrapper", attempts: int):
             node, depth = frontier.pop()
             last_seen_state = node
             stats.nodes_explored += 1
+            if stats.nodes_explored > node_expansions_allowed:
+                break
         
             if problem.goal_test(node.state):
                 stats.success = True
@@ -162,7 +164,7 @@ def choose_state_temperature(
     chosen_index = random.choices(range(len(scored)), weights=exp_scores, k=1)[0]
     return scored[chosen_index]
 
-def heuristic_dfs(problem: "Colony_Wrapper", attempts: int):
+def heuristic_dfs(problem: "Colony_Wrapper", node_expansions_allowed: int):
     def get_state_key(state: "Colony"):
         return (
             new_state.current_day,
@@ -179,7 +181,8 @@ def heuristic_dfs(problem: "Colony_Wrapper", attempts: int):
     PRUNING_DEPTH = 3
     seen: set[tuple] = set()
     last_seen_state: Node | None = None
-    for _ in range(attempts):
+    
+    while stats.nodes_explored < node_expansions_allowed:
         stats.attempts_needed += 1
         frontier = [(Node(problem.initial_state), 0)]
 
@@ -187,7 +190,8 @@ def heuristic_dfs(problem: "Colony_Wrapper", attempts: int):
             node, depth = frontier.pop()
             last_seen_state = node
             stats.nodes_explored += 1
-            
+            if stats.nodes_explored > node_expansions_allowed:
+                break            
             if problem.goal_test(node.state):
                 stats.success = True
                 stats.average_depth = total_depth / stats.attempts_needed
